@@ -1,0 +1,6 @@
+bin
+obj
+/packages
+Mining.sln.DotSettings.user
+.idea
+.vs
