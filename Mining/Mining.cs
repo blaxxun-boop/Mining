@@ -14,7 +14,7 @@ namespace Mining;
 public class Mining : BaseUnityPlugin
 {
 	private const string ModName = "Mining";
-	private const string ModVersion = "1.1.0";
+	private const string ModVersion = "1.1.1";
 	private const string ModGUID = "org.bepinex.plugins.mining";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -22,9 +22,13 @@ public class Mining : BaseUnityPlugin
 	private static ConfigEntry<Toggle> serverConfigLocked = null!;
 	private static ConfigEntry<float> miningDamageFactor = null!;
 	private static ConfigEntry<float> miningItemYieldFactor = null!;
+	public static ConfigEntry<KeyboardShortcut> explosionToggleHotkey = null!;
+	public static ConfigEntry<KeyboardShortcut> explosionToggleModifierHotkey = null!;
 	private static ConfigEntry<int> explosionMinimumLevel = null!;
 	private static ConfigEntry<float> explosionChance = null!;
 	private static ConfigEntry<float> experienceGainedFactor = null!;
+
+	private static bool explosiveMining = true;
 
 	private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
 	{
@@ -64,6 +68,7 @@ public class Mining : BaseUnityPlugin
 		miningItemYieldFactor = config("2 - Mining", "Mining Yield Factor", 2f, new ConfigDescription("Mining yield factor at skill level 100.", new AcceptableValueRange<float>(1f, 5f)));
 		explosionMinimumLevel = config("2 - Mining", "Mining Explosion Level Requirement", 50, new ConfigDescription("Minimum required skill level to have a chance for the deposit to explode. 0 is disabled.", new AcceptableValueRange<int>(0, 100), new ConfigurationManagerAttributes { ShowRangeAsPercent = false }));
 		explosionChance = config("2 - Mining", "Mining Explosion Chance", 1f, new ConfigDescription("Mining explosion chance at skill level 100.", new AcceptableValueRange<float>(0, 100)));
+		explosionToggleHotkey = config("2 - Mining", "Toggle Explosive Mining Hotkey", new KeyboardShortcut(KeyCode.T, KeyCode.LeftControl), new ConfigDescription("Shortcut to press to toggle explosion chance off and on. Please note that you have to stand still, to toggle this."), false);
 		experienceGainedFactor = config("3 - Other", "Skill Experience Gain Factor", 1f, new ConfigDescription("Factor for experience gained for the mining skill.", new AcceptableValueRange<float>(0.01f, 5f)));
 		experienceGainedFactor.SettingChanged += (_, _) => mining.SkillGainFactor = experienceGainedFactor.Value;
 		mining.SkillGainFactor = experienceGainedFactor.Value;
@@ -71,6 +76,16 @@ public class Mining : BaseUnityPlugin
 		Assembly assembly = Assembly.GetExecutingAssembly();
 		Harmony harmony = new(ModGUID);
 		harmony.PatchAll(assembly);
+	}
+
+	private void Update()
+	{
+		if (explosionToggleHotkey.Value.IsDown())
+		{
+			explosiveMining = !explosiveMining;
+			Debug.Log($"ExplosiveMining: {explosiveMining}");
+			Player.m_localPlayer?.Message(MessageHud.MessageType.TopLeft, $"Explosive Mining: {explosiveMining}");
+		}
 	}
 
 	[HarmonyPatch(typeof(Player), nameof(Player.Awake))]
@@ -153,7 +168,7 @@ public class Mining : BaseUnityPlugin
 			{
 				player.m_nview.InvokeRPC("Mining IncreaseSkill", 1);
 
-				if (explosionMinimumLevel.Value > 0 && MiningFactor >= explosionMinimumLevel.Value / 100f && Random.Range(0f, 1f) <= (MiningFactor - (explosionMinimumLevel.Value - 10) / 100f) / (1 - (explosionMinimumLevel.Value - 10) / 100f) * explosionChance.Value / 100f)
+				if (explosiveMining && explosionMinimumLevel.Value > 0 && MiningFactor >= explosionMinimumLevel.Value / 100f && Random.Range(0f, 1f) <= (MiningFactor - (explosionMinimumLevel.Value - 10) / 100f) / (1 - (explosionMinimumLevel.Value - 10) / 100f) * explosionChance.Value / 100f)
 				{
 					for (int i = 0; i < __instance.m_hitAreas.Count; ++i)
 					{
