@@ -22,8 +22,7 @@ public class Mining : BaseUnityPlugin
 	private static ConfigEntry<Toggle> serverConfigLocked = null!;
 	private static ConfigEntry<float> miningDamageFactor = null!;
 	private static ConfigEntry<float> miningItemYieldFactor = null!;
-	public static ConfigEntry<KeyboardShortcut> explosionToggleHotkey = null!;
-	public static ConfigEntry<KeyboardShortcut> explosionToggleModifierHotkey = null!;
+	private static ConfigEntry<KeyboardShortcut> explosionToggleHotkey = null!;
 	private static ConfigEntry<int> explosionMinimumLevel = null!;
 	private static ConfigEntry<float> explosionChance = null!;
 	private static ConfigEntry<float> experienceGainedFactor = null!;
