@@ -14,7 +14,7 @@ namespace Mining;
 public class Mining : BaseUnityPlugin
 {
 	private const string ModName = "Mining";
-	private const string ModVersion = "1.1.1";
+	private const string ModVersion = "1.1.2";
 	private const string ModGUID = "org.bepinex.plugins.mining";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -51,7 +51,7 @@ public class Mining : BaseUnityPlugin
 	{
 		[UsedImplicitly] public bool? ShowRangeAsPercent;
 	}
-	
+
 	private static readonly Skill mining = new("Mining", "mining.png");
 
 	public void Awake()
@@ -60,7 +60,7 @@ public class Mining : BaseUnityPlugin
 		mining.Name.German("Bergbau");
 		mining.Description.German("Erhöht den Schaden während Bergbau-Aktivitäten und erhöht die Ausbeute von Erzvorkommen.");
 		mining.Configurable = false;
-		
+
 		serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, "If on, the configuration is locked and can be changed by server admins only.");
 		configSync.AddLockingConfigEntry(serverConfigLocked);
 		miningDamageFactor = config("2 - Mining", "Mining Damage Factor", 3f, new ConfigDescription("Mining damage factor at skill level 100.", new AcceptableValueRange<float>(1f, 10f)));
@@ -159,7 +159,7 @@ public class Mining : BaseUnityPlugin
 			{
 				return true;
 			}
-			
+
 			IsMining = true;
 			MiningFactor = player.m_nview.GetZDO()?.GetFloat("Mining Skill Factor") ?? 0;
 
