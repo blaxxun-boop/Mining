@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
@@ -7,6 +8,7 @@ using JetBrains.Annotations;
 using ServerSync;
 using SkillManager;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Mining;
 
@@ -14,7 +16,7 @@ namespace Mining;
 public class Mining : BaseUnityPlugin
 {
 	private const string ModName = "Mining";
-	private const string ModVersion = "1.1.2";
+	private const string ModVersion = "1.1.3";
 	private const string ModGUID = "org.bepinex.plugins.mining";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -153,7 +155,25 @@ public class Mining : BaseUnityPlugin
 		public static bool IsMining = false;
 		public static float MiningFactor;
 
-		private static bool Prefix(MineRock5 __instance, HitData hit)
+		private static bool Prefix(MineRock5 __instance, HitData hit) => HandleMining(hit, () =>
+		{
+			for (int i = 0; i < __instance.m_hitAreas.Count; ++i)
+			{
+				MineRock5.HitArea hitArea = __instance.m_hitAreas[i];
+				if (hitArea.m_health > 0)
+				{
+					__instance.DamageArea(i, new HitData
+					{
+						m_damage = { m_damage = __instance.m_health },
+						m_point = hitArea.m_collider.bounds.center,
+						m_toolTier = 100,
+						m_attacker = hit.m_attacker
+					});
+				}
+			}
+		}, __instance.m_minToolTier, __instance.m_nview);
+
+		public static bool HandleMining(HitData hit, Action explode, int minToolTier, ZNetView netView)
 		{
 			if (hit.GetAttacker() is not Player player)
 			{
@@ -163,26 +183,13 @@ public class Mining : BaseUnityPlugin
 			IsMining = true;
 			MiningFactor = player.m_nview.GetZDO()?.GetFloat("Mining Skill Factor") ?? 0;
 
-			if (hit.m_toolTier >= __instance.m_minToolTier && hit.m_damage.m_pickaxe > 0 && __instance.m_nview.IsValid() && __instance.m_nview.IsOwner())
+			if (hit.m_toolTier >= minToolTier && hit.m_damage.m_pickaxe > 0 && netView.IsValid() && netView.IsOwner())
 			{
 				player.m_nview.InvokeRPC("Mining IncreaseSkill", 1);
 
 				if (explosiveMining && explosionMinimumLevel.Value > 0 && MiningFactor >= explosionMinimumLevel.Value / 100f && Random.Range(0f, 1f) <= (MiningFactor - (explosionMinimumLevel.Value - 10) / 100f) / (1 - (explosionMinimumLevel.Value - 10) / 100f) * explosionChance.Value / 100f)
 				{
-					for (int i = 0; i < __instance.m_hitAreas.Count; ++i)
-					{
-						MineRock5.HitArea hitArea = __instance.m_hitAreas[i];
-						if (hitArea.m_health > 0)
-						{
-							__instance.DamageArea(i, new HitData
-							{
-								m_damage = { m_damage = __instance.m_health },
-								m_point = hitArea.m_collider.bounds.center,
-								m_toolTier = 100,
-								m_attacker = hit.m_attacker
-							});
-						}
-					}
+					explode();
 					return false;
 				}
 			}
@@ -191,5 +198,55 @@ public class Mining : BaseUnityPlugin
 		}
 
 		private static void Finalizer() => IsMining = false;
+	}
+
+	[HarmonyPatch(typeof(MineRock), nameof(MineRock.RPC_Hit))]
+	public static class SetMiningFlagRock
+	{
+		private static bool Prefix(MineRock __instance, HitData hit) => SetMiningFlag.IsMining || SetMiningFlag.HandleMining(hit, () =>
+		{
+			for (int i = 0; i < __instance.m_hitAreas.Length; ++i)
+			{
+				Collider hitArea = __instance.m_hitAreas[i];
+				float health = __instance.m_nview.GetZDO().GetFloat($"Health{i}", __instance.m_health);
+				if (health > 0)
+				{
+					__instance.RPC_Hit(0, new HitData
+					{
+						m_damage = { m_damage = health },
+						m_point = hitArea.bounds.center,
+						m_toolTier = 100,
+						m_attacker = hit.m_attacker
+					}, i);
+				}
+			}
+			__instance.m_hitAreas = Array.Empty<Collider>();
+		}, __instance.m_minToolTier, __instance.m_nview);
+
+		private static void Finalizer() => SetMiningFlag.IsMining = false;
+	}
+
+	[HarmonyPatch(typeof(Destructible), nameof(Destructible.RPC_Damage))]
+	public static class SetMiningFlagDestructible
+	{
+		private static bool Prefix(Destructible __instance, HitData hit)
+		{
+			if (!SetMiningFlag.IsMining && __instance.m_damages.m_pickaxe != HitData.DamageModifier.Immune && __instance.m_damages.m_chop == HitData.DamageModifier.Immune && __instance.m_destructibleType != DestructibleType.Tree)
+			{
+				return SetMiningFlag.HandleMining(hit, () =>
+				{
+					__instance.Damage(new HitData
+					{
+						m_damage = { m_damage = __instance.m_health },
+						m_point = hit.m_point,
+						m_toolTier = 100,
+						m_attacker = hit.m_attacker
+					});
+				}, __instance.m_minToolTier, __instance.m_nview);
+			}
+			return true;
+		}
+
+		private static void Finalizer() => SetMiningFlag.IsMining = false;
 	}
 }
