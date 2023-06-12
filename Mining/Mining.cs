@@ -13,10 +13,11 @@ using Random = UnityEngine.Random;
 namespace Mining;
 
 [BepInPlugin(ModGUID, ModName, ModVersion)]
+[BepInIncompatibility("org.bepinex.plugins.valheim_plus")]
 public class Mining : BaseUnityPlugin
 {
 	private const string ModName = "Mining";
-	private const string ModVersion = "1.1.3";
+	private const string ModVersion = "1.1.4";
 	private const string ModGUID = "org.bepinex.plugins.mining";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -28,6 +29,7 @@ public class Mining : BaseUnityPlugin
 	private static ConfigEntry<int> explosionMinimumLevel = null!;
 	private static ConfigEntry<float> explosionChance = null!;
 	private static ConfigEntry<float> experienceGainedFactor = null!;
+	private static ConfigEntry<int> experienceLoss = null!;
 
 	private static bool explosiveMining = true;
 
@@ -54,10 +56,11 @@ public class Mining : BaseUnityPlugin
 		[UsedImplicitly] public bool? ShowRangeAsPercent;
 	}
 
-	private static readonly Skill mining = new("Mining", "mining.png");
+	private static Skill mining = null!;
 
 	public void Awake()
 	{
+		mining = new Skill("Mining", "mining.png");
 		mining.Description.English("Increases damage done while mining and item yield from ore deposits.");
 		mining.Name.German("Bergbau");
 		mining.Description.German("Erhöht den Schaden während Bergbau-Aktivitäten und erhöht die Ausbeute von Erzvorkommen.");
@@ -73,6 +76,9 @@ public class Mining : BaseUnityPlugin
 		experienceGainedFactor = config("3 - Other", "Skill Experience Gain Factor", 1f, new ConfigDescription("Factor for experience gained for the mining skill.", new AcceptableValueRange<float>(0.01f, 5f)));
 		experienceGainedFactor.SettingChanged += (_, _) => mining.SkillGainFactor = experienceGainedFactor.Value;
 		mining.SkillGainFactor = experienceGainedFactor.Value;
+		experienceLoss = config("3 - Other", "Skill Experience Loss", 0, new ConfigDescription("How much experience to lose in the mining skill on death.", new AcceptableValueRange<int>(0, 100)));
+		experienceLoss.SettingChanged += (_, _) => mining.SkillLoss = experienceLoss.Value;
+		mining.SkillLoss = experienceLoss.Value;
 
 		Assembly assembly = Assembly.GetExecutingAssembly();
 		Harmony harmony = new(ModGUID);
