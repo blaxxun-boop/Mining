@@ -17,7 +17,7 @@ namespace Mining;
 public class Mining : BaseUnityPlugin
 {
 	private const string ModName = "Mining";
-	private const string ModVersion = "1.1.4";
+	private const string ModVersion = "1.1.5";
 	private const string ModGUID = "org.bepinex.plugins.mining";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -48,7 +48,7 @@ public class Mining : BaseUnityPlugin
 	private enum Toggle
 	{
 		On = 1,
-		Off = 0
+		Off = 0,
 	}
 
 	private class ConfigurationManagerAttributes
@@ -173,7 +173,7 @@ public class Mining : BaseUnityPlugin
 						m_damage = { m_damage = __instance.m_health },
 						m_point = hitArea.m_collider.bounds.center,
 						m_toolTier = 100,
-						m_attacker = hit.m_attacker
+						m_attacker = hit.m_attacker,
 					});
 				}
 			}
@@ -222,7 +222,7 @@ public class Mining : BaseUnityPlugin
 						m_damage = { m_damage = health },
 						m_point = hitArea.bounds.center,
 						m_toolTier = 100,
-						m_attacker = hit.m_attacker
+						m_attacker = hit.m_attacker,
 					}, i);
 				}
 			}
@@ -246,7 +246,7 @@ public class Mining : BaseUnityPlugin
 						m_damage = { m_damage = __instance.m_health },
 						m_point = hit.m_point,
 						m_toolTier = 100,
-						m_attacker = hit.m_attacker
+						m_attacker = hit.m_attacker,
 					});
 				}, __instance.m_minToolTier, __instance.m_nview);
 			}
