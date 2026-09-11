@@ -17,7 +17,7 @@ namespace Mining;
 public class Mining : BaseUnityPlugin
 {
 	private const string ModName = "Mining";
-	private const string ModVersion = "1.1.6";
+	private const string ModVersion = "1.1.7";
 	private const string ModGUID = "org.bepinex.plugins.mining";
 
 	private static readonly ConfigSync configSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
@@ -226,6 +226,7 @@ public class Mining : BaseUnityPlugin
 					}, i);
 				}
 			}
+
 			__instance.m_hitAreas = Array.Empty<Collider>();
 		}, __instance.m_minToolTier, __instance.m_nview);
 
@@ -250,6 +251,7 @@ public class Mining : BaseUnityPlugin
 					});
 				}, __instance.m_minToolTier, __instance.m_nview);
 			}
+
 			return true;
 		}
 
